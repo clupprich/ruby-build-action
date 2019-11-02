@@ -1,13 +1,10 @@
-name: 'Wait'
-description: 'Wait a designated number of milliseconds'
+name: 'Setup Ruby environment with ruby-build'
+description: 'Setup a Ruby environemnt with ruby-build and add it to the PATH'
 inputs:
-  milliseconds:  # id of input
-    description: 'number of milliseconds to wait'
+  ruby-version:  # id of input
+    description: 'Ruby version'
     required: true
-    default: '1000'
-outputs:
-  time: # output will be available to future steps 
-    description: 'The message to output'
+    default: '2.6.5'
 runs:
   using: 'node12'
   main: 'dist/index.js'

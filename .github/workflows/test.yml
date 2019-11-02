@@ -15,5 +15,8 @@ jobs:
     - run: npm ci
     - run: npm test
     - uses: ./
+      id: ruby
       with:
-        milliseconds: 1000
+        ruby-version: 2.6.5
+    - name: Print version
+      run: ${{ steps.ruby.outputs.ruby-path }} --version
