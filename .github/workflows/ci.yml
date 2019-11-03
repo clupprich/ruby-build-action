@@ -1,4 +1,4 @@
-name: "test-local"
+name: "Tests"
 on:
   pull_request:
   push:
