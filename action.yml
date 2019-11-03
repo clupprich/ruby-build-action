@@ -1,5 +1,9 @@
 name: 'Setup Ruby environment with ruby-build'
 description: 'Setup a Ruby environemnt with ruby-build and add it to the PATH'
+author: Christoph Lupprich
+branding:
+  color: red
+  icon: code
 inputs:
   ruby-version:  # id of input
     description: 'Ruby version'
