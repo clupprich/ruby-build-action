@@ -2,7 +2,7 @@
 
 Uses [ruby-build](https://github.com/rbenv/ruby-build) to install a Ruby version.
 
-<a href="https://github.com/clupprich/ruby-build-action"><img alt="GitHub Actions status" src="https://github.com/clupprich/ruby-build-action/workflows/ci/badge.svg"></a>
+<a href="https://github.com/clupprich/ruby-build-action"><img alt="GitHub Actions status" src="https://github.com/clupprich/ruby-build-action/workflows/Tests/badge.svg"></a>
 
 ## Usage
 
