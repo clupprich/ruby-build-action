@@ -12,8 +12,16 @@ async function run() {
     core.endGroup()
 
     const rubyVersion = core.getInput('ruby-version');
+    const cacheAvailable = core.getInput('cache-available') == 'true'
+
     core.startGroup(`Installing ${rubyVersion}`)
-    await exec.exec(`ruby-build ${rubyVersion} ${process.env.HOME}/local/rubies/${rubyVersion}`)
+
+    if (!cacheAvailable) {
+      await exec.exec(`ruby-build ${rubyVersion} ${process.env.HOME}/local/rubies/${rubyVersion}`)
+    } else {
+      core.info(`Skipping installation of ${rubyVersion}, already available in cache.`)
+    }
+
     core.addPath(`${process.env.HOME}/local/rubies/${rubyVersion}/bin`)
     const rubyPath = await io.which('ruby', true)
     await exec.exec(`${rubyPath} --version`)
