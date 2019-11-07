@@ -8,7 +8,10 @@ on:
 
 jobs:
   test:
-    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        os: [ubuntu-16.04, ubuntu-latest]
+    runs-on: ${{ matrix.os }}
     steps:
     - uses: actions/checkout@v1
     - uses: ./
@@ -18,7 +21,10 @@ jobs:
     - name: Print version
       run: ${{ steps.ruby.outputs.ruby-path }} --version
   test-cached:
-    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        os: [ubuntu-16.04, ubuntu-latest]
+    runs-on: ${{ matrix.os }}
     steps:
     - uses: actions/checkout@v1
     - uses: actions/cache@preview
