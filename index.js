@@ -5,10 +5,11 @@ const io = require('@actions/io');
 // most @actions toolkit packages have async methods
 async function run() {
   try {
+    const rubyBuildDir = `${process.env.HOME}/var/ruby-build`
     core.startGroup('Installing ruby-build')
     await exec.exec('sudo apt-get -qq install autoconf bison build-essential libssl-dev libyaml-dev libreadline6-dev zlib1g-dev libncurses5-dev libffi-dev libgdbm5 libgdbm-dev')
-    await exec.exec('git clone https://github.com/rbenv/ruby-build.git')
-    await exec.exec('sudo ./ruby-build/install.sh', { env: { 'PREFIX': '/usr/local' } })
+    await exec.exec(`git clone https://github.com/rbenv/ruby-build.git ${rubyBuildDir}`)
+    await exec.exec(`sudo ${rubyBuildDir}/install.sh`, { env: { 'PREFIX': '/usr/local' } })
     core.endGroup()
 
     const rubyVersion = core.getInput('ruby-version');
