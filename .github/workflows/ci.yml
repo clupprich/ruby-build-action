@@ -9,6 +9,7 @@ on:
 jobs:
   test:
     strategy:
+      fail-fast: false
       matrix:
         os: [ubuntu-16.04, ubuntu-latest]
     runs-on: ${{ matrix.os }}
@@ -20,8 +21,10 @@ jobs:
         ruby-version: 2.6.5
     - name: Print version
       run: ${{ steps.ruby.outputs.ruby-path }} --version
+
   test-cached:
     strategy:
+      fail-fast: false
       matrix:
         os: [ubuntu-16.04, ubuntu-latest]
     runs-on: ${{ matrix.os }}
