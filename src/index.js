@@ -1,18 +1,29 @@
 const core = require('@actions/core');
 const exec = require('@actions/exec');
 const io = require('@actions/io');
+const os = require('./os')
 
 function _dependenciesForPlatform(platform) {
-  return 'autoconf bison build-essential libssl-dev libyaml-dev libreadline6-dev zlib1g-dev libncurses5-dev libffi-dev libgdbm5 libgdbm-dev'
+  return {
+    'ubuntu-16.04': 'autoconf bison build-essential libssl-dev libyaml-dev libreadline6-dev zlib1g-dev libncurses5-dev libffi-dev libgdbm3 libgdbm-dev',
+    'ubuntu-18.04': 'autoconf bison build-essential libssl-dev libyaml-dev libreadline6-dev zlib1g-dev libncurses5-dev libffi-dev libgdbm5 libgdbm-dev'
+  }[platform]
 }
 
 function _getPlatform() {
-  return 'ubuntu-18.04'
+  const releaseInfo = os.releaseInfo()
+
+  return `${releaseInfo.distribId.toLowerCase()}-${releaseInfo.distribRelease}`
 }
 
 async function _installDependencies() {
   const platform = _getPlatform()
   const dependencies = _dependenciesForPlatform(platform)
+  if (!dependencies) {
+    core.setFailed(`Cannot find dependencies for platform ${platform}`)
+    return
+  }
+
   await exec.exec(`sudo apt-get -qq install ${dependencies}`)
 }
 

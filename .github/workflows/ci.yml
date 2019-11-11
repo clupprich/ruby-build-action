@@ -34,7 +34,7 @@ jobs:
       id: cache
       with:
         path: ~/local/rubies
-        key: ruby-2.6.5
+        key: ruby-2.6.5-${{ matrix.os }}
     - uses: ./
       id: ruby
       with:
