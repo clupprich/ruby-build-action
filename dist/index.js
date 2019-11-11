@@ -34,8 +34,10 @@ module.exports =
 /******/ 	// the startup function
 /******/ 	function startup() {
 /******/ 		// Load entry module and return exports
-/******/ 		return __webpack_require__(104);
+/******/ 		return __webpack_require__(676);
 /******/ 	};
+/******/ 	// initialize runtime
+/******/ 	runtime(__webpack_require__);
 /******/
 /******/ 	// run startup
 /******/ 	return startup();
@@ -928,54 +930,94 @@ module.exports = require("os");
 
 /***/ }),
 
-/***/ 104:
-/***/ (function(__unusedmodule, __unusedexports, __webpack_require__) {
-
-const core = __webpack_require__(470);
-const exec = __webpack_require__(986);
-const io = __webpack_require__(1);
-
-// most @actions toolkit packages have async methods
-async function run() {
-  try {
-    const rubyBuildDir = `${process.env.HOME}/var/ruby-build`
-    core.startGroup('Installing ruby-build')
-    await exec.exec('sudo apt-get -qq install autoconf bison build-essential libssl-dev libyaml-dev libreadline6-dev zlib1g-dev libncurses5-dev libffi-dev libgdbm5 libgdbm-dev')
-    await exec.exec(`git clone https://github.com/rbenv/ruby-build.git ${rubyBuildDir}`)
-    await exec.exec(`sudo ${rubyBuildDir}/install.sh`, { env: { 'PREFIX': '/usr/local' } })
-    core.endGroup()
-
-    const rubyVersion = core.getInput('ruby-version');
-    const cacheAvailable = core.getInput('cache-available') == 'true'
-
-    core.startGroup(`Installing ${rubyVersion}`)
-
-    if (!cacheAvailable) {
-      await exec.exec(`ruby-build ${rubyVersion} ${process.env.HOME}/local/rubies/${rubyVersion}`)
-    } else {
-      core.info(`Skipping installation of ${rubyVersion}, already available in cache.`)
-    }
-
-    core.addPath(`${process.env.HOME}/local/rubies/${rubyVersion}/bin`)
-    const rubyPath = await io.which('ruby', true)
-    await exec.exec(`${rubyPath} --version`)
-    core.setOutput('ruby-path', rubyPath);
-    core.endGroup()
-  }
-  catch (error) {
-    core.setFailed(error.message);
-  }
-}
-
-run()
-
-
-/***/ }),
-
 /***/ 129:
 /***/ (function(module) {
 
 module.exports = require("child_process");
+
+/***/ }),
+
+/***/ 177:
+/***/ (function(module) {
+
+"use strict";
+
+
+const preserveCamelCase = string => {
+	let isLastCharLower = false;
+	let isLastCharUpper = false;
+	let isLastLastCharUpper = false;
+
+	for (let i = 0; i < string.length; i++) {
+		const character = string[i];
+
+		if (isLastCharLower && /[a-zA-Z]/.test(character) && character.toUpperCase() === character) {
+			string = string.slice(0, i) + '-' + string.slice(i);
+			isLastCharLower = false;
+			isLastLastCharUpper = isLastCharUpper;
+			isLastCharUpper = true;
+			i++;
+		} else if (isLastCharUpper && isLastLastCharUpper && /[a-zA-Z]/.test(character) && character.toLowerCase() === character) {
+			string = string.slice(0, i - 1) + '-' + string.slice(i - 1);
+			isLastLastCharUpper = isLastCharUpper;
+			isLastCharUpper = false;
+			isLastCharLower = true;
+		} else {
+			isLastCharLower = character.toLowerCase() === character && character.toUpperCase() !== character;
+			isLastLastCharUpper = isLastCharUpper;
+			isLastCharUpper = character.toUpperCase() === character && character.toLowerCase() !== character;
+		}
+	}
+
+	return string;
+};
+
+const camelCase = (input, options) => {
+	if (!(typeof input === 'string' || Array.isArray(input))) {
+		throw new TypeError('Expected the input to be `string | string[]`');
+	}
+
+	options = Object.assign({
+		pascalCase: false
+	}, options);
+
+	const postProcess = x => options.pascalCase ? x.charAt(0).toUpperCase() + x.slice(1) : x;
+
+	if (Array.isArray(input)) {
+		input = input.map(x => x.trim())
+			.filter(x => x.length)
+			.join('-');
+	} else {
+		input = input.trim();
+	}
+
+	if (input.length === 0) {
+		return '';
+	}
+
+	if (input.length === 1) {
+		return options.pascalCase ? input.toUpperCase() : input.toLowerCase();
+	}
+
+	const hasUpperCase = input !== input.toLowerCase();
+
+	if (hasUpperCase) {
+		input = preserveCamelCase(input);
+	}
+
+	input = input
+		.replace(/^[_.\- ]+/, '')
+		.toLowerCase()
+		.replace(/[_.\- ]+(\w|$)/g, (_, p1) => p1.toUpperCase())
+		.replace(/\d+(\w|$)/g, m => m.toUpperCase());
+
+	return postProcess(input);
+};
+
+module.exports = camelCase;
+// TODO: Remove this for the next major release
+module.exports.default = camelCase;
+
 
 /***/ }),
 
@@ -1466,10 +1508,119 @@ function isUnixExecutable(stats) {
 
 /***/ }),
 
+/***/ 676:
+/***/ (function(__unusedmodule, __unusedexports, __webpack_require__) {
+
+const core = __webpack_require__(470);
+const exec = __webpack_require__(986);
+const io = __webpack_require__(1);
+const os = __webpack_require__(888)
+
+function _dependenciesForPlatform(platform) {
+  return {
+    'ubuntu-16.04': 'autoconf bison build-essential libssl-dev libyaml-dev libreadline6-dev zlib1g-dev libncurses5-dev libffi-dev libgdbm3 libgdbm-dev',
+    'ubuntu-18.04': 'autoconf bison build-essential libssl-dev libyaml-dev libreadline6-dev zlib1g-dev libncurses5-dev libffi-dev libgdbm5 libgdbm-dev'
+  }[platform]
+}
+
+function _getPlatform() {
+  const releaseInfo = os.releaseInfo()
+
+  return `${releaseInfo.distribId.toLowerCase()}-${releaseInfo.distribRelease}`
+}
+
+async function _installDependencies() {
+  const platform = _getPlatform()
+  const dependencies = _dependenciesForPlatform(platform)
+  if (!dependencies) {
+    core.setFailed(`Cannot find dependencies for platform ${platform}`)
+    return
+  }
+
+  await exec.exec(`sudo apt-get -qq install ${dependencies}`)
+}
+
+async function _installRubyBuild() {
+  core.startGroup('Installing ruby-build')
+
+  await _installDependencies()
+
+  const rubyBuildDir = `${process.env.HOME}/var/ruby-build`
+  await exec.exec(`git clone https://github.com/rbenv/ruby-build.git ${rubyBuildDir}`)
+  await exec.exec(`sudo ${rubyBuildDir}/install.sh`, { env: { 'PREFIX': '/usr/local' } })
+
+  core.endGroup()
+}
+
+async function _installRuby(rubyVersion, cacheAvailable) {
+  core.startGroup(`Installing ${rubyVersion}`)
+
+  if (!cacheAvailable) {
+    await exec.exec(`ruby-build ${rubyVersion} ${process.env.HOME}/local/rubies/${rubyVersion}`)
+  } else {
+    core.info(`Skipping installation of ${rubyVersion}, already available in cache.`)
+  }
+
+  core.addPath(`${process.env.HOME}/local/rubies/${rubyVersion}/bin`)
+  const rubyPath = await io.which('ruby', true)
+  await exec.exec(`${rubyPath} --version`)
+  core.setOutput('ruby-path', rubyPath);
+
+  core.endGroup()
+}
+
+async function run() {
+  try {
+    await _installRubyBuild()
+
+    const rubyVersion = core.getInput('ruby-version');
+    const cacheAvailable = core.getInput('cache-available') == 'true'
+    await _installRuby(rubyVersion, cacheAvailable)
+  }
+  catch (error) {
+    core.setFailed(error.message);
+  }
+}
+
+run()
+
+
+/***/ }),
+
 /***/ 747:
 /***/ (function(module) {
 
 module.exports = require("fs");
+
+/***/ }),
+
+/***/ 888:
+/***/ (function(__unusedmodule, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "releaseInfo", function() { return releaseInfo; });
+const fs = __webpack_require__(747)
+const camelCase = __webpack_require__(177)
+
+const LINE_MATCH = /^(\w+)=["']?([\w\s\.]+)["']?$/
+
+function releaseInfo() {
+  const content = fs.readFileSync('/etc/lsb-release', 'utf8')
+
+  const obj = {}
+
+  content.split("\n").forEach(function(line) {
+    const matches = line.match(LINE_MATCH)
+
+    if (matches) {
+      obj[camelCase(matches[1])] = matches[2]
+    }
+  })
+
+  return obj
+}
+
 
 /***/ }),
 
@@ -1517,4 +1668,31 @@ exports.exec = exec;
 
 /***/ })
 
-/******/ });
+/******/ },
+/******/ function(__webpack_require__) { // webpackRuntimeModules
+/******/ 	"use strict";
+/******/ 
+/******/ 	/* webpack/runtime/make namespace object */
+/******/ 	!function() {
+/******/ 		// define __esModule on exports
+/******/ 		__webpack_require__.r = function(exports) {
+/******/ 			if(typeof Symbol !== 'undefined' && Symbol.toStringTag) {
+/******/ 				Object.defineProperty(exports, Symbol.toStringTag, { value: 'Module' });
+/******/ 			}
+/******/ 			Object.defineProperty(exports, '__esModule', { value: true });
+/******/ 		};
+/******/ 	}();
+/******/ 	
+/******/ 	/* webpack/runtime/define property getter */
+/******/ 	!function() {
+/******/ 		// define getter function for harmony exports
+/******/ 		var hasOwnProperty = Object.prototype.hasOwnProperty;
+/******/ 		__webpack_require__.d = function(exports, name, getter) {
+/******/ 			if(!hasOwnProperty.call(exports, name)) {
+/******/ 				Object.defineProperty(exports, name, { enumerable: true, get: getter });
+/******/ 			}
+/******/ 		};
+/******/ 	}();
+/******/ 	
+/******/ }
+);

@@ -8,7 +8,11 @@ on:
 
 jobs:
   test:
-    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-16.04, ubuntu-latest]
+    runs-on: ${{ matrix.os }}
     steps:
     - uses: actions/checkout@v1
     - uses: ./
@@ -17,15 +21,20 @@ jobs:
         ruby-version: 2.6.5
     - name: Print version
       run: ${{ steps.ruby.outputs.ruby-path }} --version
+
   test-cached:
-    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-16.04, ubuntu-latest]
+    runs-on: ${{ matrix.os }}
     steps:
     - uses: actions/checkout@v1
     - uses: actions/cache@preview
       id: cache
       with:
         path: ~/local/rubies
-        key: ruby-2.6.5
+        key: ruby-2.6.5-${{ matrix.os }}
     - uses: ./
       id: ruby
       with:
