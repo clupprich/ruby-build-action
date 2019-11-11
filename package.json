@@ -4,7 +4,6 @@
   "description": "Setup Ruby environment with ruby-build",
   "main": "index.js",
   "scripts": {
-    "lint": "eslint index.js",
     "package": "ncc build index.js -o dist"
   },
   "repository": {
@@ -29,7 +28,6 @@
     "@actions/io": "^1.0.1"
   },
   "devDependencies": {
-    "@zeit/ncc": "^0.20.5",
-    "eslint": "^6.3.0"
+    "@zeit/ncc": "^0.20.5"
   }
 }
