@@ -923,6 +923,57 @@ class ExecState extends events.EventEmitter {
 
 /***/ }),
 
+/***/ 63:
+/***/ (function(__unusedmodule, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "type", function() { return type; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "version", function() { return version; });
+const fs = __webpack_require__(747)
+const os = __webpack_require__(87)
+const camelCase = __webpack_require__(177)
+
+const LINE_MATCH = /^(\w+)=["']?([\w\s\.]+)["']?$/
+
+function _lsbRelease() {
+  const content = fs.readFileSync('/etc/lsb-release', 'utf8')
+
+  const obj = {}
+
+  content.split("\n").forEach(function(line) {
+    const matches = line.match(LINE_MATCH)
+
+    if (matches) {
+      obj[camelCase(matches[1])] = matches[2]
+    }
+  })
+
+  return obj
+}
+
+function type() {
+  const type = os.type()
+  if (type == 'Linux') {
+    try {
+      const lsbRelease = _lsbRelease()
+      return lsbRelease.distribId
+    }
+    catch { }
+  }
+
+  return type
+}
+
+function version() {
+  if (type() == 'Ubuntu') {
+    return _lsbRelease().distribRelease
+  }
+}
+
+
+/***/ }),
+
 /***/ 87:
 /***/ (function(module) {
 
@@ -1514,30 +1565,25 @@ function isUnixExecutable(stats) {
 const core = __webpack_require__(470);
 const exec = __webpack_require__(986);
 const io = __webpack_require__(1);
-const os = __webpack_require__(888)
+const platform = __webpack_require__(63)
 
-function _dependenciesForPlatform(platform) {
-  return {
-    'ubuntu-16.04': 'autoconf bison build-essential libssl-dev libyaml-dev libreadline6-dev zlib1g-dev libncurses5-dev libffi-dev libgdbm3 libgdbm-dev',
-    'ubuntu-18.04': 'autoconf bison build-essential libssl-dev libyaml-dev libreadline6-dev zlib1g-dev libncurses5-dev libffi-dev libgdbm5 libgdbm-dev'
-  }[platform]
-}
+function _dependenciesCmdForPlatformVersion(platform, version) {
+  if (platform == 'Ubuntu') {
+    const dependencies = {
+      '16.04': 'autoconf bison build-essential libssl-dev libyaml-dev libreadline6-dev zlib1g-dev libncurses5-dev libffi-dev libgdbm3 libgdbm-dev',
+      '18.04': 'autoconf bison build-essential libssl-dev libyaml-dev libreadline6-dev zlib1g-dev libncurses5-dev libffi-dev libgdbm5 libgdbm-dev'
+    }[version]
 
-function _getPlatform() {
-  const releaseInfo = os.releaseInfo()
-
-  return `${releaseInfo.distribId.toLowerCase()}-${releaseInfo.distribRelease}`
+    return `sudo apt-get -qq install ${dependencies}`
+  }
 }
 
 async function _installDependencies() {
-  const platform = _getPlatform()
-  const dependencies = _dependenciesForPlatform(platform)
-  if (!dependencies) {
-    core.setFailed(`Cannot find dependencies for platform ${platform}`)
-    return
-  }
+  const dependenciesCmd = _dependenciesCmdForPlatformVersion(platform.type(), platform.version())
 
-  await exec.exec(`sudo apt-get -qq install ${dependencies}`)
+  if (dependenciesCmd) {
+    await exec.exec(dependenciesCmd)
+  }
 }
 
 async function _installRubyBuild() {
@@ -1591,36 +1637,6 @@ run()
 /***/ (function(module) {
 
 module.exports = require("fs");
-
-/***/ }),
-
-/***/ 888:
-/***/ (function(__unusedmodule, __webpack_exports__, __webpack_require__) {
-
-"use strict";
-__webpack_require__.r(__webpack_exports__);
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "releaseInfo", function() { return releaseInfo; });
-const fs = __webpack_require__(747)
-const camelCase = __webpack_require__(177)
-
-const LINE_MATCH = /^(\w+)=["']?([\w\s\.]+)["']?$/
-
-function releaseInfo() {
-  const content = fs.readFileSync('/etc/lsb-release', 'utf8')
-
-  const obj = {}
-
-  content.split("\n").forEach(function(line) {
-    const matches = line.match(LINE_MATCH)
-
-    if (matches) {
-      obj[camelCase(matches[1])] = matches[2]
-    }
-  })
-
-  return obj
-}
-
 
 /***/ }),
 

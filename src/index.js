@@ -1,30 +1,25 @@
 const core = require('@actions/core');
 const exec = require('@actions/exec');
 const io = require('@actions/io');
-const os = require('./os')
+const platform = require('./platform')
 
-function _dependenciesForPlatform(platform) {
-  return {
-    'ubuntu-16.04': 'autoconf bison build-essential libssl-dev libyaml-dev libreadline6-dev zlib1g-dev libncurses5-dev libffi-dev libgdbm3 libgdbm-dev',
-    'ubuntu-18.04': 'autoconf bison build-essential libssl-dev libyaml-dev libreadline6-dev zlib1g-dev libncurses5-dev libffi-dev libgdbm5 libgdbm-dev'
-  }[platform]
-}
+function _dependenciesCmdForPlatformVersion(platform, version) {
+  if (platform == 'Ubuntu') {
+    const dependencies = {
+      '16.04': 'autoconf bison build-essential libssl-dev libyaml-dev libreadline6-dev zlib1g-dev libncurses5-dev libffi-dev libgdbm3 libgdbm-dev',
+      '18.04': 'autoconf bison build-essential libssl-dev libyaml-dev libreadline6-dev zlib1g-dev libncurses5-dev libffi-dev libgdbm5 libgdbm-dev'
+    }[version]
 
-function _getPlatform() {
-  const releaseInfo = os.releaseInfo()
-
-  return `${releaseInfo.distribId.toLowerCase()}-${releaseInfo.distribRelease}`
+    return `sudo apt-get -qq install ${dependencies}`
+  }
 }
 
 async function _installDependencies() {
-  const platform = _getPlatform()
-  const dependencies = _dependenciesForPlatform(platform)
-  if (!dependencies) {
-    core.setFailed(`Cannot find dependencies for platform ${platform}`)
-    return
-  }
+  const dependenciesCmd = _dependenciesCmdForPlatformVersion(platform.type(), platform.version())
 
-  await exec.exec(`sudo apt-get -qq install ${dependencies}`)
+  if (dependenciesCmd) {
+    await exec.exec(dependenciesCmd)
+  }
 }
 
 async function _installRubyBuild() {
