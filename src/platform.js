@@ -1,9 +1,10 @@
 const fs = require('fs')
+const os = require('os')
 const camelCase = require('camelcase')
 
 const LINE_MATCH = /^(\w+)=["']?([\w\s\.]+)["']?$/
 
-export function releaseInfo() {
+function _lsbRelease() {
   const content = fs.readFileSync('/etc/lsb-release', 'utf8')
 
   const obj = {}
@@ -17,4 +18,23 @@ export function releaseInfo() {
   })
 
   return obj
+}
+
+export function type() {
+  const type = os.type()
+  if (type == 'Linux') {
+    try {
+      const lsbRelease = _lsbRelease()
+      return lsbRelease.distribId
+    }
+    catch { }
+  }
+
+  return type
+}
+
+export function version() {
+  if (type() == 'Ubuntu') {
+    return _lsbRelease().distribRelease
+  }
 }
