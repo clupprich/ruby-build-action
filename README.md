@@ -1,3 +1,5 @@
+# DEPRECATED - Please use https://github.com/ruby/setup-ruby instead
+
 # ruby-build-action
 
 Uses [ruby-build](https://github.com/rbenv/ruby-build) to install a Ruby version.
